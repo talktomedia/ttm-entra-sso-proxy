@@ -28,7 +28,10 @@ final class TTM_Entra_SSO_Proxy_Updater
 
     public static function init(string $pluginFile, string $repo, string $version): void
     {
-        if (!is_admin()) {
+        // is_admin() alone would miss WP-CLI (`wp plugin update`) - it's not
+        // a wp-admin request, so is_admin() is false there too, but it's the
+        // realistic way updates get pushed across many sites at once.
+        if (!is_admin() && !(defined('WP_CLI') && WP_CLI)) {
             return;
         }
 
