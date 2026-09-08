@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
  */
 final class TTM_Entra_SSO_Proxy_Updater
 {
-    private const CACHE_TTL = 6 * HOUR_IN_SECONDS;
+    private const CACHE_TTL = 15 * MINUTE_IN_SECONDS;
     private const RETRY_TTL = 5 * MINUTE_IN_SECONDS;
 
     private string $pluginBasename;
