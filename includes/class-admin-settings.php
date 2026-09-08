@@ -50,6 +50,7 @@ final class TTM_Entra_SSO_Proxy_Admin_Settings {
                 'azure_allowed_tenant' => sanitize_text_field( $input['azure_allowed_tenant'] ?? '' ),
                 'token_ttl'            => max( 30, (int) ( $input['token_ttl'] ?? 120 ) ),
                 'force_admin_emails'   => sanitize_textarea_field( $input['force_admin_emails'] ?? '' ),
+                'app_role_map'         => sanitize_textarea_field( $input['app_role_map'] ?? '' ),
         ];
     }
 
@@ -266,6 +267,23 @@ final class TTM_Entra_SSO_Proxy_Admin_Settings {
                                 for one of these on any client site, it's given the <code>administrator</code> role
                                 instead of that site's configured default role. Only applies to accounts being
                                 created for the first time - doesn't change the role of an existing user.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="ttm_app_role_map">Entra App Role &rarr; WordPress role</label></th>
+                        <td>
+                            <textarea id="ttm_app_role_map" class="regular-text" rows="3"
+                                      name="<?php echo esc_attr( TTM_Entra_SSO_Proxy_Config::OPTION_KEY ); ?>[app_role_map]"
+                                      placeholder="WP.Admin=administrator&#10;WP.Editor=editor"><?php echo esc_textarea( $config['app_role_map'] ); ?></textarea>
+                            <p class="description">
+                                One <code>EntraRole=wp_role_slug</code> pair per line, matching the App Roles you've
+                                defined on this Entra app registration and assigned under Enterprise Applications &rarr;
+                                Users and groups. Checked top to bottom - list higher-privilege roles first, since the
+                                first match wins for a user assigned more than one. Only applies when a new WordPress
+                                account is auto-created; falls back to that site's own configured default role if the
+                                user has none of these App Roles, or this is left blank. The always-admin list above
+                                still wins over this regardless of App Role.
                             </p>
                         </td>
                     </tr>

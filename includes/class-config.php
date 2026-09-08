@@ -49,6 +49,7 @@ final class TTM_Entra_SSO_Proxy_Config
             'azure_allowed_tenant' => '',
             'token_ttl' => 120,
             'force_admin_emails' => '',
+            'app_role_map' => '',
         ];
 
         return wp_parse_args(get_option(self::OPTION_KEY, []), $defaults);
@@ -115,6 +116,45 @@ final class TTM_Entra_SSO_Proxy_Config
     public static function is_force_admin(string $email): bool
     {
         return in_array(strtolower($email), self::force_admin_emails(), true);
+    }
+
+    /**
+     * Maps an Entra App Role (from the id_token's "roles" claim, assigned
+     * under the app registration's Enterprise Application -> Users and
+     * groups) to a WordPress role slug - kept as a proxy-side, admin-editable
+     * mapping rather than hardcoded Entra role names in the client plugin,
+     * so adding/renaming a role never needs a code change or redeploy.
+     *
+     * One "EntraRole=wp_role_slug" pair per line. Checked top to bottom;
+     * the first line whose Entra role the user has is used, so list
+     * higher-privilege roles first for users who might hold more than one.
+     * Returns null (meaning "no override, use that site's own default
+     * role") if nothing configured or none of the user's roles match.
+     *
+     * @param string[] $entraRoles
+     */
+    public static function wp_role_for_entra_roles(array $entraRoles): ?string
+    {
+        if (empty($entraRoles)) {
+            return null;
+        }
+
+        $raw = (string) self::get()['app_role_map'];
+
+        foreach (preg_split('/\r\n|\r|\n/', $raw) as $line) {
+            $line = trim($line);
+            if ($line === '' || !str_contains($line, '=')) {
+                continue;
+            }
+
+            [$entraRole, $wpRole] = array_map('trim', explode('=', $line, 2));
+
+            if ($entraRole !== '' && $wpRole !== '' && in_array($entraRole, $entraRoles, true)) {
+                return $wpRole;
+            }
+        }
+
+        return null;
     }
 
     public static function is_configured(): bool
