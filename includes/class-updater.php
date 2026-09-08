@@ -19,6 +19,9 @@ if (!defined('ABSPATH')) {
  */
 final class TTM_Entra_SSO_Proxy_Updater
 {
+    private const CACHE_TTL = 6 * HOUR_IN_SECONDS;
+    private const RETRY_TTL = 5 * MINUTE_IN_SECONDS;
+
     private string $pluginBasename;
     private string $repo;
     private string $version;
@@ -36,6 +39,7 @@ final class TTM_Entra_SSO_Proxy_Updater
 
         add_filter('pre_set_site_transient_update_plugins', [$instance, 'inject_update']);
         add_filter('upgrader_source_selection', [$instance, 'fix_folder_name'], 10, 4);
+        add_action('upgrader_process_complete', [$instance, 'purge_cache_after_update'], 10, 2);
         add_filter('plugin_row_meta', [$instance, 'add_repo_link'], 10, 2);
     }
 
@@ -76,46 +80,52 @@ final class TTM_Entra_SSO_Proxy_Updater
     }
 
     /**
-     * DIAGNOSTIC BUILD: caching temporarily removed - fetches GitHub fresh
-     * on every call, to test in isolation whether the WP-CLI gate fix alone
-     * is sufficient without the site_transient_update_plugins resilience
-     * hook or our own cache. Not for production use as-is: without caching,
-     * this hits GitHub's unauthenticated rate limit (60 req/hour/IP)
-     * quickly under normal wp-admin/WP-CLI usage.
-     *
      * GitHub returns tags newest-first, so the first one that parses as a
-     * plain version number wins.
+     * plain version number wins. Cached (including negative results) so an
+     * admin loading pages repeatedly, or WP-CLI running on a schedule,
+     * doesn't hammer GitHub's unauthenticated API (60 req/hour/IP).
      *
      * @return array{tag: string, version: string, zip: string}|null
      */
     private function latest_tag(): ?array
     {
+        $cacheKey = 'ttm_gh_updater_' . md5($this->repo);
+        $cached = get_transient($cacheKey);
+        if ($cached !== false) {
+            return (is_array($cached) && !empty($cached)) ? $cached : null;
+        }
+
         $response = wp_remote_get("https://api.github.com/repos/{$this->repo}/tags", [
             'headers' => ['Accept' => 'application/vnd.github+json'],
             'timeout' => 10,
         ]);
 
         if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
+            set_transient($cacheKey, [], self::RETRY_TTL);
             return null;
         }
 
         $tags = json_decode(wp_remote_retrieve_body($response), true);
+        $result = null;
 
         if (is_array($tags)) {
             foreach ($tags as $tag) {
                 $name = (string) ($tag['name'] ?? '');
                 $version = ltrim($name, 'vV');
                 if ($version !== '' && preg_match('/^\d+(\.\d+){0,3}$/', $version)) {
-                    return [
+                    $result = [
                         'tag' => $name,
                         'version' => $version,
                         'zip' => "https://github.com/{$this->repo}/archive/refs/tags/{$name}.zip",
                     ];
+                    break;
                 }
             }
         }
 
-        return null;
+        set_transient($cacheKey, $result ?? [], self::CACHE_TTL);
+
+        return $result;
     }
 
     /**
@@ -144,6 +154,17 @@ final class TTM_Entra_SSO_Proxy_Updater
         }
 
         return $corrected;
+    }
+
+    /**
+     * @param mixed $upgrader
+     * @param array<string, mixed> $options
+     */
+    public function purge_cache_after_update($upgrader, array $options): void
+    {
+        if (($options['action'] ?? '') === 'update' && ($options['type'] ?? '') === 'plugin') {
+            delete_transient('ttm_gh_updater_' . md5($this->repo));
+        }
     }
 
     /**
