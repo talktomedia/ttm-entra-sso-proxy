@@ -168,6 +168,8 @@ final class TTM_Entra_SSO_Proxy_Rest_Routes
             'site_id' => $site_id,
             'email' => $email,
             'name' => $claims['name'] ?? null,
+            'given_name' => $claims['given_name'] ?? null,
+            'family_name' => $claims['family_name'] ?? null,
             'oid' => $claims['oid'] ?? null,
             'tid' => $claims['tid'] ?? null,
             'jti' => bin2hex(random_bytes(16)),
