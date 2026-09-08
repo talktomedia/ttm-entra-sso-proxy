@@ -37,7 +37,14 @@ final class TTM_Entra_SSO_Proxy_Updater
 
         $instance = new self($pluginFile, $repo, $version);
 
+        // Both the write side (fires when WordPress's own update-plugins.org
+        // check completes) and the read side (fires on every read of the
+        // transient, regardless of whether that check ever completed) - core
+        // silently skips saving the transient at all if its request to
+        // api.wordpress.org fails or errors, which would otherwise mean our
+        // filter never runs on a host where that request doesn't succeed.
         add_filter('pre_set_site_transient_update_plugins', [$instance, 'inject_update']);
+        add_filter('site_transient_update_plugins', [$instance, 'inject_update']);
         add_filter('upgrader_source_selection', [$instance, 'fix_folder_name'], 10, 4);
         add_action('upgrader_process_complete', [$instance, 'purge_cache_after_update'], 10, 2);
         add_filter('plugin_row_meta', [$instance, 'add_repo_link'], 10, 2);
@@ -56,8 +63,27 @@ final class TTM_Entra_SSO_Proxy_Updater
      */
     public function inject_update($transient)
     {
-        if (!is_object($transient) || empty($transient->checked)) {
-            return $transient;
+        if (!is_object($transient)) {
+            $transient = new stdClass();
+        }
+
+        // Normally already populated by core before this filter runs - but
+        // when nothing has, e.g. the read-side filter firing before core's
+        // own check has ever succeeded, build it ourselves so this doesn't
+        // silently depend on that having happened first.
+        if (empty($transient->checked)) {
+            if (!function_exists('get_plugins')) {
+                require_once ABSPATH . 'wp-admin/includes/plugin.php';
+            }
+
+            $transient->checked = [];
+            foreach (get_plugins() as $file => $data) {
+                $transient->checked[$file] = $data['Version'];
+            }
+        }
+
+        if (!isset($transient->response) || !is_array($transient->response)) {
+            $transient->response = [];
         }
 
         $latest = $this->latest_tag();

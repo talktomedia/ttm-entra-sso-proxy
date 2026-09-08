@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TTM Entra ID SSO Proxy
  * Description: Runs the Entra ID SSO proxy on this MainWP Dashboard install. Fronts a single Entra app registration for every client site running the TTM Entra ID SSO plugin.
- * Version: 1.2.4
+ * Version: 1.2.5
  * Author: Talk To Media
  * Requires PHP: 7.4
  * License: Proprietary - internal TTM use
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('TTM_ENTRA_SSO_PROXY_VERSION', '1.2.4');
+define('TTM_ENTRA_SSO_PROXY_VERSION', '1.2.5');
 define('TTM_ENTRA_SSO_PROXY_DIR', plugin_dir_path(__FILE__));
 define('TTM_ENTRA_SSO_PROXY_URL', plugin_dir_url(__FILE__));
 define('TTM_ENTRA_SSO_PROXY_GITHUB_REPO', 'talktomedia/ttm-entra-sso-proxy');
