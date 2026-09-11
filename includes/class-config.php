@@ -143,11 +143,11 @@ final class TTM_Entra_SSO_Proxy_Config
 
         foreach (preg_split('/\r\n|\r|\n/', $raw) as $line) {
             $line = trim($line);
-            if ($line === '' || !str_contains($line, '=')) {
+            if ($line === '' || strpos($line, '=') === false) {
                 continue;
             }
 
-            [$entraRole, $wpRole] = array_map('trim', explode('=', $line, 2));
+            list($entraRole, $wpRole) = array_map('trim', explode('=', $line, 2));
 
             if ($entraRole !== '' && $wpRole !== '' && in_array($entraRole, $entraRoles, true)) {
                 return $wpRole;

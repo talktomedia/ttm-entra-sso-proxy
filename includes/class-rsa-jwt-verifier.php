@@ -35,7 +35,7 @@ final class TTM_Entra_SSO_Proxy_Rsa_Jwt_Verifier
             throw new RuntimeException('Malformed id_token.');
         }
 
-        [$headerB64, $payloadB64, $signatureB64] = $parts;
+        list($headerB64, $payloadB64, $signatureB64) = $parts;
 
         $header = json_decode(self::base64UrlDecode($headerB64), true);
         if (!is_array($header) || ($header['alg'] ?? null) !== 'RS256' || empty($header['kid'])) {

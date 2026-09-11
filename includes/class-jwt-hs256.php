@@ -39,7 +39,7 @@ final class TTM_Entra_SSO_Proxy_Jwt_Hs256
             throw new RuntimeException('Malformed token.');
         }
 
-        [$header, $payload, $signature] = $parts;
+        list($header, $payload, $signature) = $parts;
 
         if (!hash_equals(self::sign("{$header}.{$payload}", $secret), $signature)) {
             throw new RuntimeException('Token signature verification failed.');

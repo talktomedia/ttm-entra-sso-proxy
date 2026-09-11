@@ -82,7 +82,7 @@ final class TTM_Entra_SSO_Proxy_Admin_Settings {
             return;
         }
 
-        [ $type, $message ] = $messages[ $notice ];
+        list( $type, $message ) = $messages[ $notice ];
         printf( '<div class="notice notice-%s is-dismissible"><p>%s</p></div>', esc_attr( $type ), esc_html( $message ) );
     }
 

@@ -157,7 +157,7 @@ final class TTM_Entra_SSO_Proxy_Rest_Routes {
 			}
 		}
 
-		[ $givenName, $familyName ] = self::given_and_family_name( $claims );
+		list( $givenName, $familyName ) = self::given_and_family_name( $claims );
 
 		$now           = time();
 		$handoffClaims = [
@@ -192,7 +192,7 @@ final class TTM_Entra_SSO_Proxy_Rest_Routes {
 		$handoff = TTM_Entra_SSO_Proxy_Jwt_Hs256::encode( $handoffClaims, TTM_Entra_SSO_Proxy_Site_Registry::sharedSecretFor( $site_id ) );
 
 		$returnUri = TTM_Entra_SSO_Proxy_Site_Registry::returnUriFor( $site_id );
-		$separator = str_contains( $returnUri, '?' ) ? '&' : '?';
+		$separator = strpos( $returnUri, '?' ) === false ? '?' : '&';
 
 		wp_redirect( $returnUri . $separator . 'token=' . urlencode( $handoff ) );
 		exit;
